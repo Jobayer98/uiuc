@@ -1,7 +1,7 @@
 <?php
 	session_start();
 	
-	//create database connection;
+	//create database connection
 	include("connect_db.php");
 	
 	//blank var
@@ -246,28 +246,27 @@ include("model/PageHeader.php");
 				
 				<div style="height:5px;"></div>
 
-				<div id="commentArea<?php echo $rows['id'];?>" style="display:none">
+				<div id="commentArea20" style="display:none">
 					<span style="font-size:20px; font-weight: bold; margin-bottom: 4px;">Comments</span>
 					<hr>
 
 					<?php					
-					//Print Post Comments
-					$Commentresult		= mysqli_query($con, "SELECT * FROM `comments` WHERE `postID`=".$rows['id']." ORDER BY id DESC");
-					if(!$Commentresult){
-						echo mysqli_error($con);
-					}
-					else{
-						if(mysqli_num_rows(mysqli_query($con, "SELECT * FROM `comments` WHERE `postID`=".$rows['id'])) <= 0){
-							echo "Be the first one to comment.";
-						};
-						?>
+						//Print Post Comments
+						$Commentresult		= mysqli_query($con, "SELECT * FROM `comments` WHERE `postID`=".$rows['id']." ORDER BY id DESC");
+						if(!$Commentresult){
+							echo mysqli_error($con);
+						} else{
+							if(mysqli_num_rows(mysqli_query($con, "SELECT * FROM `comments` WHERE `postID`=".$rows['id'])) <= 0){
+								echo "Be the first one to comment.";
+							};
+							?>
 						<input onkeypress="return DoCommentListener(event, <?php echo $rows['id'];?>, this.value)" placeholder="Write a Comment" style="width: 98%; height: 40px; background: rgb(71, 81, 89); color: white; border-radius: 5px; border: medium none; margin-bottom: 9px; padding: 8px; font-family: sans-serif;overflow: auto;" spellcheck="false" id="commentBox<?php echo $rows['id'];?>"/>
-						
-						
-					<div id="commentContainer<?php echo $rows['id'];?>">
-						
-						
-						<?php
+							
+							
+						<div id="commentContainer<?php echo $rows['id'];?>">
+							
+							
+					<?php
 						while($rows=mysqli_fetch_array($Commentresult)){
 
 					?>
