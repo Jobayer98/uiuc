@@ -246,7 +246,7 @@ include("model/PageHeader.php");
 				
 				<div style="height:5px;"></div>
 
-				<div id="commentArea20" style="display:none">
+				<div id="commentArea<?php echo $rows['id'];?>" style="display:none">
 					<span style="font-size:20px; font-weight: bold; margin-bottom: 4px;">Comments</span>
 					<hr>
 
