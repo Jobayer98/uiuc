@@ -25,7 +25,12 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" type="text/css" href="css/client.css"/>
+	<link rel="stylesheet" type="text/css" href="css/aurna-lightbox.css"/>
+	<link rel="stylesheet" href="css/fontawesome-free-6.2.0-web/css/all.min.css" />
 	<title>Your Groups</title>
+	<script src="js/aurna-lightbox.js"></script>
+	<script src="js/discussion.js"></script>
+	<script src="js/managecontent.js"></script>
 </head>
 <body>
 <ul>
@@ -55,7 +60,10 @@
 			  <a href="#">Subscription</a>
 			</div>
 	</li>
-	<li style="float:right"><a class="active" href="logout.php">Logout</a></li>
+	<div style="float:right">
+		<li><a class="active" href="profile.php">Profile</a></li>
+		<li><a class="active" href="logout.php">Logout</a></li>
+	</div>
 </ul>
 <div id='body'>
 </br>
@@ -110,6 +118,169 @@
 
 ?>
 </table>
+
+<h1>Group posts timeline</h1>
+<?php
+	mysqli_set_charset($con,"utf8");
+	$groupsql        = "SELECT id FROM `groups`";
+	$groupresult		= mysqli_query($con, $groupsql);
+	while($grouprow=mysqli_fetch_array($groupresult)){
+
+		mysqli_set_charset($con,"utf8");
+		$groupid    		= $grouprow['id'];
+		$sql        = "SELECT * FROM `group_posts` WHERE `groupID`=$groupid ORDER BY id DESC LIMIT 5";
+		$result		= mysqli_query($con, $sql);
+		if(!$result){
+			echo mysqli_error($con);
+		}
+		else{
+			while($rows=mysqli_fetch_array($result)){
+				?>
+				<div style="padding: 19px;background: #282e33; margin-bottom: 9px;" class="postContainer" id="PostCont<?php echo $rows['id'];?>">
+				<?php 
+					// Print User Image And Details
+				?>
+				<a style="text-decoration: none;" href="profile.php?id=<?php echo $rows['userID'];?>">
+				<?php
+					$OwnerID = $rows['userID'];
+					if($row = $conn->query("SELECT name, institute, image FROM users WHERE id='$OwnerID'")->fetch_assoc()) {
+						?>
+						<img style="height: 37px; border-radius: 50px; position: absolute;" src="uploads/<?php echo $row['image'];?>"/>
+						<span style="font-size:18px; font-weight: bold; margin-bottom: 4px; margin-left: 42px;"><?php echo $row['name']; ?></span> updated a status</br>
+						
+						<?php
+						$OwnerInstitute = $row['institute'];
+						if($row1 = $conn->query("SELECT name FROM institutes WHERE id='$OwnerInstitute'")->fetch_assoc()) {
+						?>
+						
+						<small style="margin-left: 42px;"> <?php echo $row1['name']; ?></small>
+						
+						<?php
+						}
+					}	
+				?>
+				</a>
+				
+				<?php
+				//For Post Owner
+				if($OwnerID == $_COOKIE['userid']){?>
+				<small id="mithun" style="float: right;">
+					<i onclick="deletePost(<?php echo $rows['id'];?>)"  data-title="Delete This Post" class="fa-solid fa-trash"></i>
+					&nbsp;
+					<i onclick="editPost(<?php echo $rows['id'];?>)" data-title="Edit This Post" class="fa-solid fa-pen-to-square"></i>
+				</small>
+				<?php } ?>
+				
+				<div style="height:5px;"></div>
+				
+				<div id="postcontent<?php echo $rows['id'];?>">
+				<?php echo base64_decode($rows['content']); ?>
+				</div>
+				
+				<div style="height:5px;"></div>
+				
+				<div style="padding: 11px;background: #363e44;border-radius: 8px;margin-top: 7px;"> 
+					<button onclick="likePost(<?php echo $rows['id'];?>)" class="button-10" id="likecont<?php echo $rows['id'];?>">
+						<?php
+						$row = mysqli_num_rows(mysqli_query($con, "SELECT * FROM `likes` WHERE `postID`='".$rows['id']."' AND `userID`='".$_COOKIE['userid']."'"));
+						if($row >= 1){
+							echo '<i class="fa-solid fa-thumbs-down"></i> Unlike';
+						} else if($row == 0){
+							echo '<i class="fa-solid fa-thumbs-up"></i> Like';
+						}
+						?>
+					</button>
+					<button class="button-10" onclick="commentArea<?php echo $rows['id'];?>.style.display = 'inherit'; loadComments('<?php echo $rows['id'];?>');">
+						<i class="fa-solid fa-comment"></i> Comment
+					</button>
+					<button id="copyBtn<?php echo $rows['id'];?>" class="button-10" onclick="CopyPostLink('<?php echo $rows['id'];?>', location.href)">
+						<i class="fa-solid fa-copy"></i> Copy Link
+					</button>&nbsp;
+					<span id="likeCounter<?php echo $rows['id'];?>">
+					<?php 
+						$PostLikeCount = mysqli_num_rows(mysqli_query($con, "SELECT * FROM `likes` WHERE `postID`='".$rows['id']."'"));
+						if($PostLikeCount  == 0){
+							echo 'Be the first one to Like';
+						} else {
+							echo $PostLikeCount.' Likes';
+						}
+					?></span>
+					&nbsp;.&nbsp;
+					<span id="commentCounter<?php echo $rows['id'];?>">
+					<?php 
+						$PostCommentCount = mysqli_num_rows(mysqli_query($con, "SELECT * FROM `comments` WHERE `postID`='".$rows['id']."'"));
+						if($PostCommentCount  == 0){
+							echo 'No Comments';
+						} else {
+							echo $PostCommentCount.' Comments';
+						}
+					?></span>
+				</div>
+				
+				<div style="height:5px;"></div>
+
+				<div id="commentArea<?php echo $rows['id'];?>" style="display:none">
+					<span style="font-size:20px; font-weight: bold; margin-bottom: 4px;">Comments</span>
+					<hr>
+
+					<?php					
+						//Print Post Comments
+						$Commentresult		= mysqli_query($con, "SELECT * FROM `comments` WHERE `postID`=".$rows['id']." ORDER BY id DESC");
+						if(!$Commentresult){
+							echo mysqli_error($con);
+						} else{
+							if(mysqli_num_rows(mysqli_query($con, "SELECT * FROM `comments` WHERE `postID`=".$rows['id'])) <= 0){
+								echo "Be the first one to comment.";
+							};
+							?>
+						<input onkeypress="return DoCommentListener(event, <?php echo $rows['id'];?>, this.value)" placeholder="Write a Comment" style="width: 98%; height: 40px; background: rgb(71, 81, 89); color: white; border-radius: 5px; border: medium none; margin-bottom: 9px; padding: 8px; font-family: sans-serif;overflow: auto;" spellcheck="false" id="commentBox<?php echo $rows['id'];?>"/>
+							
+							
+						<div id="commentContainer<?php echo $rows['id'];?>">
+							
+							
+					<?php
+						while($rows=mysqli_fetch_array($Commentresult)){
+
+					?>
+					
+					<div class="commentsConta">
+					<?php 
+						// Print Details
+					?>
+					<a style="text-decoration: none;" href="profile.php?id=<?php echo $rows['userID'];?>">
+					<?php
+						$CommentOwnerID = $rows['userID'];
+						if($row = $conn->query("SELECT name, institute, image FROM users WHERE id='$CommentOwnerID'")->fetch_assoc()) {
+							?>
+							<span style="font-size:14px; font-weight: bold; margin-bottom: 3px; position: absolute;"><?php echo $row['name']; ?></span></br>
+							<?php
+							$CommentOwnerInstitute = $row['institute'];
+							if($row1 = $conn->query("SELECT name FROM institutes WHERE id='$CommentOwnerInstitute'")->fetch_assoc()) {
+							?>
+							<small style="font-size: 11px; border-bottom: 1px dotted white; position: absolute;"> <?php echo $row1['name']; ?></small>
+							<?php
+							}
+						}	
+					?>
+					</a>
+					</br>
+					<?php echo $rows['comment']; ?> </br>
+					</div>
+					
+					<?php
+						}
+					}
+					?>
+					</div>
+				</div>
+			</div>
+				
+		<?php }
+		}
+	}
+	?>
+
 	
 </div>
 </div>
